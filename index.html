@@ -1,0 +1,303 @@
+
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>BSS Hive Planner — 50 слотов + иконки из репозитория</title>
+<meta name="description" content="Планировщик улья Bee Swarm Simulator: 50 слотов, бусты, HPH. Иконки берутся из папки assets/ репозитория.">
+<style>
+*{box-sizing:border-box}:root{--bg:#0b0d10;--card:#12161b;--muted:#8892a2;--text:#eef2f8;--border:#222a33}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+header h1{margin:.2rem 0 0}.sub{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.card{grid-column:span 6;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.card.full{grid-column:span 12} h2{margin:.2rem 0 1rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input,select,button{background:#0f1318;color:var(--text);border:1px solid var(--border);padding:10px;border-radius:8px}
+button.primary{background:#162230;border-color:#273647;cursor:pointer}
+.pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.pal .bee{display:flex;gap:10px;padding:8px;border:1px solid var(--border);border-radius:12px;background:#0f1318;align-items:center}
+.pal .bee img{width:36px;height:36px;border-radius:8px;flex:0 0 36px}
+.gridwrap{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.hive{display:grid;grid-template-columns:repeat(10,56px);grid-auto-rows:56px;gap:6px;background:#0a0e12;padding:8px;border-radius:12px;border:1px solid var(--border)}
+.slot{width:56px;height:56px;border:1px dashed #24303c;border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative;background:#0c1116}
+.slot img{width:48px;height:48px;border-radius:10px;pointer-events:none}
+.slot .x{position:absolute;top:2px;right:4px;background:#1a1111;border:1px solid #3b2222;color:#ffb0b0;border-radius:6px;padding:0 4px;font-size:.75rem;display:none}
+.slot.filled .x{display:block;cursor:pointer}
+.legend{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:.9rem}
+.kpis{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
+.kpi .k{color:var(--muted);font-size:.9rem}.kpi .v{font-size:1.4rem;font-weight:700}
+.table{overflow:auto;border:1px solid var(--border);border-radius:10px;margin-top:8px}
+table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid var(--border)}
+footer{color:var(--muted);text-align:center;margin:18px 0 28px}
+@media(max-width:900px){.card{grid-column:span 12}.hive{grid-template-columns:repeat(5,56px)}} 
+.tip{color:var(--muted);font-size:.9rem;margin:.5rem 0 0}
+.badge{display:inline-flex;gap:6px;align-items:center;background:#0f1318;border:1px solid var(--border);padding:8px;border-radius:10px}
+.badge img{width:20px;height:20px;border-radius:5px}
+</style>
+</head>
+<body>
+<header class="container">
+  <h1>🐝 BSS Hive Planner — демо</h1>
+  <p class="sub">Иконки берутся из репозитория: <code>assets/bees/*.png</code>, <code>assets/masks/*.png</code>, <code>assets/tools/*.png</code>. Данные — из <code>data/*.json</code>.</p>
+</header>
+
+<main class="container grid">
+  <section class="card">
+    <h2>1) Экипировка</h2>
+    <div class="row">
+      <label>Маска<br><select id="maskSelect"></select></label>
+      <label>Предметы (ботинки/рюкзак и т.п.)<br><span id="itemsBox"></span></label>
+      <label>Инструмент<br><select id="toolSelect"></select></label>
+    </div>
+    <div class="legend" id="gearCosts"></div>
+    <div id="gearIcons" class="legend"></div>
+  </section>
+
+  <section class="card">
+    <h2>2) Бусты</h2>
+    <div class="row">
+      <label>White x<br><input type="number" id="whiteMult" step="0.05" min="0" value="1.00"></label>
+      <label>Red x<br><input type="number" id="redMult" step="0.05" min="0" value="1.00"></label>
+      <label>Blue x<br><input type="number" id="blueMult" step="0.05" min="0" value="1.25"></label>
+      <label>Глоб. pollen x<br><input type="number" id="gp" step="0.05" min="0" value="1.00"></label>
+      <label>Глоб. convert x<br><input type="number" id="gc" step="0.05" min="0" value="1.00"></label>
+    </div>
+  </section>
+
+  <section class="card full">
+    <h2>3) Улей на 50 слотов</h2>
+    <div class="gridwrap">
+      <div>
+        <div class="hive" id="hive"></div>
+        <div class="tip">Перетащи пчелу на слот • «×» удаляет • долгое нажатие — очистка. Иконки: <code>assets/bees/&lt;id&gt;.png</code>.</div>
+      </div>
+      <div style="flex:1;min-width:320px">
+        <h3>Палитра пчёл</h3>
+        <div class="pal" id="beePalette"></div>
+      </div>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:8px">
+      <button id="clearHive" class="ghost">Очистить</button>
+      <button id="exportHive" class="primary">Экспорт</button>
+      <input id="importFile" type="file" accept="application/json" hidden>
+      <button id="importHive">Импорт</button>
+    </div>
+  </section>
+
+  <section class="card full">
+    <h2>4) Результаты</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="k">Пыльца/сек</div><div class="v" id="pollenPs">—</div></div>
+      <div class="kpi"><div class="k">Конверт/сек</div><div class="v" id="convertPs">—</div></div>
+      <div class="kpi"><div class="k">HPH (мёд/час)</div><div class="v" id="hph">—</div></div>
+    </div>
+    <div class="legend" id="bottleneck"></div>
+    <div class="table">
+      <table>
+        <thead><tr><th>Пчела</th><th>Цвет</th><th>Кол-во</th><th>pollen/s</th><th>convert/s</th></tr></thead>
+        <tbody id="summaryTbl"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer class="container">
+  <p>Фанатский инструмент. Иконки и названия берутся из репозитория /assets и /data. Если файла нет — показывается плейсхолдер.</p>
+</footer>
+
+<script>
+const PH_BEE = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij4KICA8cmVjdCB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHJ4PSIxNiIgZmlsbD0iIzJiMzY0MiIvPgogIDx0ZXh0IHg9IjUwJSIgeT0iNTglIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLFNlZ29lIFVJLFJvYm90byIgZm9udC1zaXplPSI1NCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwuOTIpIj5CPC90ZXh0Pgo8L3N2Zz4=';
+const PH_MASK = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij4KICA8cmVjdCB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHJ4PSIxNiIgZmlsbD0iIzNhMmI0MiIvPgogIDx0ZXh0IHg9IjUwJSIgeT0iNTglIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLFNlZ29lIFVJLFJvYm90byIgZm9udC1zaXplPSI1NCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwuOTIpIj5NPC90ZXh0Pgo8L3N2Zz4=';
+const PH_TOOL = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij4KICA8cmVjdCB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHJ4PSIxNiIgZmlsbD0iIzJiNDIzMiIvPgogIDx0ZXh0IHg9IjUwJSIgeT0iNTglIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLFNlZ29lIFVJLFJvYm90byIgZm9udC1zaXplPSI1NCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwuOTIpIj5UPC90ZXh0Pgo8L3N2Zz4=';
+
+const el = (s)=>document.querySelector(s);
+const fmt = (n)=>{ if(n===0)return"0"; if(!isFinite(n))return"—"; const a=Math.abs(n); if(a>=1e12)return(n/1e12).toFixed(2)+"T"; if(a>=1e9)return(n/1e9).toFixed(2)+"B"; if(a>=1e6)return(n/1e6).toFixed(2)+"M"; if(a>=1e3)return(n/1e3).toFixed(2)+"K"; return n.toFixed(2); };
+
+const state = {
+  bees: [],
+  gear: { masks:[], items:[], tools:[] },
+  mask: null,
+  tool: null,
+  items: new Set(),
+  hive: Array.from({length:50}, ()=>null),
+  field: { white:1.00, red:1.00, blue:1.25 },
+  globalMult: { pollen:1.00, convert:1.00 },
+};
+
+function iconUrl(kind, id){
+  const map = { bees: "assets/bees/", masks: "assets/masks/", tools: "assets/tools/" };
+  return (map[kind]||"") + id + ".png";
+}
+
+async function loadData(){
+  async function get(path, fallback){
+    try{ const r=await fetch(path+"?v="+Date.now()); if(!r.ok) throw new Error(); return await r.json(); }
+    catch(e){ return fallback; }
+  }
+  const bees = await get("data/bees.json", []);
+  const masks = await get("data/masks.json", []);
+  const items = await get("data/items.json", []);
+  const tools = await get("data/tools.json", []);
+  state.bees = bees;
+  state.gear.masks = masks;
+  state.gear.items = items;
+  state.gear.tools = tools;
+  state.mask = masks[0]?.name || null;
+  state.tool = tools[0]?.name || null;
+}
+
+function mountEquip(){
+  const maskSel = el("#maskSelect"); maskSel.innerHTML = state.gear.masks.map(m=>`<option value="${m.name}">${m.name}</option>`).join("");
+  maskSel.value = state.mask || "";
+  maskSel.onchange = ()=>{ state.mask = maskSel.value; renderResults(); renderGearIcons(); };
+
+  const toolSel = el("#toolSelect"); toolSel.innerHTML = state.gear.tools.map(t=>`<option value="${t.name}">${t.name}</option>`).join("");
+  toolSel.value = state.tool || "";
+  toolSel.onchange = ()=>{ state.tool = toolSel.value; renderResults(); renderGearIcons(); };
+
+  const box = el("#itemsBox"); box.innerHTML = "";
+  state.gear.items.forEach(it=>{
+    const id = `item-${it.name.replace(/\s+/g,'-')}`;
+    const lab = document.createElement("label"); lab.style.marginRight="8px";
+    lab.innerHTML = `<input type="checkbox" id="${id}"> ${it.name}`;
+    const inp = lab.querySelector("input"); inp.checked = state.items.has(it.name);
+    inp.onchange = ()=>{ inp.checked? state.items.add(it.name): state.items.delete(it.name); renderResults(); renderGearIcons(); };
+    box.appendChild(lab);
+  });
+  renderGearIcons();
+}
+
+function renderGearIcons(){
+  const wrap = el("#gearIcons"); wrap.innerHTML = "";
+  const mask = state.gear.masks.find(m=>m.name===state.mask);
+  const tool = state.gear.tools.find(t=>t.name===state.tool);
+  function badge(kind, id, label, fallback){
+    const span=document.createElement("span"); span.className="badge";
+    const img=document.createElement("img"); img.src = iconUrl(kind,id); img.onerror = ()=> img.src=fallback;
+    const txt=document.createElement("span"); txt.textContent=label;
+    span.appendChild(img); span.appendChild(txt); wrap.appendChild(span);
+  }
+  if(mask) badge("masks", mask.id, mask.name, PH_MASK);
+  if(tool) badge("tools", tool.id, tool.name, PH_TOOL);
+  state.gear.items.filter(i=>state.items.has(i.name)).forEach(it=>{
+    const span=document.createElement("span"); span.className="badge";
+    const img=document.createElement("img"); img.src = iconUrl("tools", it.id or "item"); img.onerror=()=>img.src=PH_TOOL;
+    const txt=document.createElement("span"); txt.textContent=it.name;
+    span.appendChild(img); span.appendChild(txt); wrap.appendChild(span);
+  });
+}
+
+function mountHive(){
+  const hive = el("#hive"); hive.innerHTML = "";
+  for(let i=0;i<50;i++){
+    const slot=document.createElement("div"); slot.className="slot"; slot.dataset.idx=i;
+    slot.addEventListener("dragover", e=>e.preventDefault());
+    slot.addEventListener("drop", e=>{ e.preventDefault(); const id=e.dataTransfer.getData("text/bee"); if(!id) return; state.hive[i]=id; renderHive(); renderResults(); });
+    slot.addEventListener("touchstart", ()=>{ slot.dataset.t0 = Date.now(); });
+    slot.addEventListener("touchend", ()=>{ if(Date.now()-(+slot.dataset.t0||0) > 400) { state.hive[i]=null; renderHive(); renderResults(); } });
+    hive.appendChild(slot);
+  }
+  renderHive();
+}
+
+function renderHive(){
+  const hive = el("#hive");
+  const byId = Object.fromEntries(state.bees.map(b=>[b.id,b]));
+  for(let i=0;i<50;i++){
+    const slot=hive.children[i]; const id=state.hive[i];
+    slot.classList.remove("filled"); slot.innerHTML="";
+    if(id){
+      const b=byId[id];
+      const img=document.createElement("img"); img.src = iconUrl("bees", id); img.onerror=()=>img.src=PH_BEE;
+      slot.appendChild(img);
+      const x=document.createElement("div"); x.className="x"; x.textContent="×";
+      x.onclick=()=>{ state.hive[i]=null; renderHive(); renderResults(); };
+      slot.appendChild(x); slot.classList.add("filled");
+    }
+  }
+}
+
+function mountPalette(){
+  const pal = el("#beePalette"); pal.innerHTML = "";
+  state.bees.forEach(b=>{
+    const div=document.createElement("div"); div.className="bee"; div.draggable=true;
+    div.addEventListener("dragstart", e=>e.dataTransfer.setData("text/bee", b.id));
+    const img=document.createElement("img"); img.src = iconUrl("bees", b.id); img.onerror=()=>img.src=PH_BEE;
+    div.appendChild(img);
+    const box=document.createElement("div"); box.innerHTML=`<div class="name">${b.name}</div><div class="meta">${b.color} • pollen/s ${b.pollen_ps} • convert/s ${b.convert_ps}</div>`;
+    div.appendChild(box); pal.appendChild(div);
+  });
+}
+
+function aggregateGear(){
+  const mask = state.gear.masks.find(m=>m.name===state.mask);
+  const items = state.gear.items.filter(it=>state.items.has(it.name));
+  const tool = state.gear.tools.find(t=>t.name===state.tool);
+  const m={pollen_mult:1,convert_mult:1,white_mult:1,red_mult:1,blue_mult:1,capacity_mult:1,cost_honey:0,cost_items:[]};
+  function ap(x){["pollen_mult","convert_mult","white_mult","red_mult","blue_mult","capacity_mult"].forEach(k=>m[k]*=(x?.[k]||1)); m.cost_honey+=x?.cost_honey||0; if(x?.cost_items) m.cost_items.push(x.cost_items); }
+  if(mask) ap(mask); if(tool) ap(tool); items.forEach(ap);
+  m.cost_items = m.cost_items.join("; ");
+  return m;
+}
+
+function compute(){
+  const gear = aggregateGear();
+  const byId = Object.fromEntries(state.bees.map(b=>[b.id,b]));
+  let counts={}; state.hive.forEach(id=>{ if(id) counts[id]=(counts[id]||0)+1; });
+  let pol=0, conv=0; let rows=[];
+  for(const [id,c] of Object.entries(counts)){
+    const b=byId[id]; if(!b) continue;
+    const fm={white:state.field.white,red:state.field.red,blue:state.field.blue}[b.color]||1;
+    const p=b.pollen_ps*c*gear.pollen_mult*fm*state.globalMult.pollen; pol+=p;
+    const cv=b.convert_ps*c*gear.convert_mult*state.globalMult.convert; conv+=cv;
+    rows.push({name:b.name,color:b.color,count:c,pollen:p,convert:cv});
+  }
+  const meanColor=(gear.white_mult+gear.red_mult+gear.blue_mult)/3; pol*=meanColor;
+  const eff=Math.min(pol,conv); const hph=eff*3600;
+  return {gear,totalPollen:pol,totalConvert:conv,hph,rows};
+}
+
+function renderResults(){
+  const r = compute();
+  el("#pollenPs").textContent = fmt(r.totalPollen);
+  el("#convertPs").textContent = fmt(r.totalConvert);
+  el("#hph").textContent = fmt(r.hph);
+  el("#bottleneck").innerHTML = r.totalPollen < r.totalConvert ? "Ограничение: <b>сбор пыльцы</b>" : (r.totalPollen > r.totalConvert ? "Ограничение: <b>конвертация</b>" : "Баланс");
+  el("#gearCosts").innerHTML = "Стоимость экипировки: <b>"+fmt(r.gear.cost_honey)+"</b> мёда • " + (r.gear.cost_items || "—");
+  const tb=el("#summaryTbl"); tb.innerHTML=""; r.rows.sort((a,b)=>b.count-a.count).forEach(row=>{ const tr=document.createElement("tr"); tr.innerHTML=`<td>${row.name}</td><td>${row.color}</td><td>${row.count}</td><td>${fmt(row.pollen)}</td><td>${fmt(row.convert)}</td>`; tb.appendChild(tr); });
+}
+
+function exportCfg(){
+  const cfg={mask:state.mask,tool:state.tool,items:Array.from(state.items),hive:state.hive,field:state.field,globalMult:state.globalMult};
+  const blob=new Blob([JSON.stringify(cfg,null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="bss_hive_50_repo.json"; a.click(); URL.revokeObjectURL(url);
+}
+
+function importCfg(file){
+  const r=new FileReader(); r.onload=()=>{ try{const cfg=JSON.parse(r.result); state.mask=cfg.mask??state.mask; state.tool=cfg.tool??state.tool; state.items=new Set(cfg.items??Array.from(state.items)); if(Array.isArray(cfg.hive)&&cfg.hive.length===50) state.hive=cfg.hive; state.field=cfg.field??state.field; state.globalMult=cfg.globalMult??state.globalMult; mountEquip(); renderHive(); renderResults(); }catch(e){ alert("Ошибка импорта"); } }; r.readAsText(file);
+}
+
+async function boot(){
+  await loadData();
+  mountEquip(); mountHive(); mountPalette();
+  if (state.hive.every(x=>x===null)) {
+    const ids = state.bees.slice(0,50).map(b=>b.id);
+    for (let i=0;i<Math.min(50,ids.length);i++) state.hive[i]=ids[i];
+    renderHive();
+  }
+  document.getElementById("clearHive").onclick=()=>{ state.hive=Array.from({length:50},()=>null); renderHive(); renderResults(); };
+  document.getElementById("exportHive").onclick=exportCfg;
+  document.getElementById("importHive").onclick=()=>document.getElementById("importFile").click();
+  document.getElementById("importFile").onchange=e=>{ const f=e.target.files[0]; if(f) importCfg(f); };
+  const w=el("#whiteMult"), r=el("#redMult"), b=el("#blueMult"), gp=el("#gp"), gc=el("#gc");
+  const upd=()=>{ state.field.white=parseFloat(w.value)||1; state.field.red=parseFloat(r.value)||1; state.field.blue=parseFloat(b.value)||1; state.globalMult.pollen=parseFloat(gp.value)||1; state.globalMult.convert=parseFloat(gc.value)||1; renderResults(); };
+  [w,r,b,gp,gc].forEach(i=>i.addEventListener("input",upd));
+  renderResults();
+}
+
+window.addEventListener("DOMContentLoaded", boot);
+</script>
+</body>
+</html>
