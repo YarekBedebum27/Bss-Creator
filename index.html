@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>BSS Hive Planner — 50 слотов + свои иконки</title>
+<meta name="description" content="Планировщик улья Bee Swarm Simulator: 50 слотов, бусты, HPH; загрузка своих иконок (URL/файлы), массовая загрузка, экспорт/импорт конфигурации.">
+<style>
+*{box-sizing:border-box}:root{--bg:#0b0d10;--card:#12161b;--muted:#8892a2;--text:#eef2f8;--border:#222a33;--chip:#1a2129;--accent:#77e1ff}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+header h1{margin:.2rem 0 0}.sub{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.card{grid-column:span 6;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.card.full{grid-column:span 12}
+h2{margin:.2rem 0 1rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input,select,button{background:#0f1318;color:var(--text);border:1px solid var(--border);padding:10px;border-radius:8px}
+button.primary{background:linear-gradient(180deg,#203040,#17222f);border-color:#2a3b4a;cursor:pointer}
+button.ghost{background:transparent;cursor:pointer}
+.pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.pal .bee{display:flex;gap:10px;padding:8px;border:1px solid var(--border);border-radius:12px;background:#0f1318;align-items:center}
+.pal .bee img{width:36px;height:36px;border-radius:8px;flex:0 0 36px;user-drag:none;background:#0b0d10}
+.pal .bee .name{font-weight:600}.pal .bee .meta{color:var(--muted);font-size:.85rem}
+.pal .bee[draggable="true"]{cursor:grab}
+.gridwrap{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.hive{display:grid;grid-template-columns:repeat(10,56px);grid-auto-rows:56px;gap:6px;background:#0a0e12;padding:8px;border-radius:12px;border:1px solid var(--border)}
+.slot{width:56px;height:56px;border:1px dashed #24303c;border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative;background:#0c1116}
+.slot img{width:48px;height:48px;border-radius:10px;pointer-events:none;background:#0b0d10}
+.slot .x{position:absolute;top:2px;right:4px;background:#1a1111;border:1px solid #3b2222;color:#ffb0b0;border-radius:6px;padding:0 4px;font-size:.75rem;display:none}
+.slot.filled .x{display:block;cursor:pointer}
+.legend{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:.9rem}
+.kpis{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
+.kpi .k{color:var(--muted);font-size:.9rem}.kpi .v{font-size:1.4rem;font-weight:700}
+.table{overflow:auto;border:1px solid var(--border);border-radius:10px;margin-top:8px}
+table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid var(--border)}
+footer{color:var(--muted);text-align:center;margin:18px 0 28px}
+@media(max-width:900px){.card{grid-column:span 12}.hive{grid-template-columns:repeat(5,56px)}} 
+.tip{color:var(--muted);font-size:.9rem;margin:.5rem 0 0}
+.editor{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+.editor .row{align-items:flex-start}
+.preview{display:flex;gap:10px;align-items:center}
+.preview img{width:36px;height:36px;border-radius:8px;background:#0b0d10}
+.note{color:#ffd166;background:#342d1b;border:1px solid #594d2b;padding:8px;border-radius:8px;margin-top:8px;font-size:.9rem}
+.small{font-size:.9rem}
+</style>
+</head>
+<body>
+<header class="container">
+  <h1>🐝 BSS Hive Planner — демо</h1>
+  <p class="sub">50 слотов улья + перетаскивание пчёл + <b>свои иконки</b> (URL/файлы/массовая загрузка). Всё локально в браузере.</p>
+</header>
+
+<main class="container grid">
+  <section class="card">
+    <h2>1) Экипировка</h2>
+    <div class="row">
+      <label>Маска<br><select id="maskSelect"></select></label>
+      <label>Предметы<br><span id="itemsBox"></span></label>
+    </div>
+    <div class="legend" id="gearCosts"></div>
+  </section>
+
+  <section class="card">
+    <h2>2) Бусты</h2>
+    <div class="row">
+      <label>White x<br><input type="number" id="whiteMult" step="0.05" min="0" value="1.00"></label>
+      <label>Red x<br><input type="number" id="redMult" step="0.05" min="0" value="1.00"></label>
+      <label>Blue x<br><input type="number" id="blueMult" step="0.05" min="0" value="1.25"></label>
+      <label>Глоб. pollen x<br><input type="number" id="gp" step="0.05" min="0" value="1.00"></label>
+      <label>Глоб. convert x<br><input type="number" id="gc" step="0.05" min="0" value="1.00"></label>
+    </div>
+  </section>
+
+  <section class="card full">
+    <h2>3) Улей на 50 слотов</h2>
+    <div class="gridwrap">
+      <div>
+        <div class="hive" id="hive"></div>
+        <div class="tip">Перетащи пчелу на слот • «×» удаляет • долгое нажатие — очистка.</div>
+      </div>
+      <div style="flex:1;min-width:320px">
+        <h3>Палитра пчёл</h3>
+        <div class="pal" id="beePalette"></div>
+      </div>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:8px">
+      <button id="clearHive" class="ghost">Очистить</button>
+      <button id="exportHive" class="primary">Экспорт</button>
+      <input id="importFile" type="file" accept="application/json" hidden>
+      <button id="importHive">Импорт</button>
+    </div>
+  </section>
+
+  <section class="card full">
+    <h2>4) Свои иконки</h2>
+    <div class="note">
+      Можно вставлять ссылки (если у тебя есть права) или загружать собственные файлы. 
+      <b>Массовая загрузка</b> подхватывает файлы по имени: <span class="small">fuzzy.png, diamond.png, demon_mask.png, gummy_mask.png и т.п.</span>
+      Всё сохраняется в <code>localStorage</code>, на сервер ничего не уходит.
+    </div>
+
+    <h3>Быстрая массовая загрузка</h3>
+    <div class="row">
+      <div>
+        <input id="bulkBeeFiles" type="file" accept="image/*" multiple>
+        <div class="small">Для пчёл: назови файлы как <code>basic.png</code>, <code>fuzzy.webp</code>, <code>tadpole.jpg</code> и т.д.</div>
+      </div>
+      <div>
+        <input id="bulkMaskFiles" type="file" accept="image/*" multiple>
+        <div class="small">Для масок: <code>gummy_mask.png</code>, <code>demon_mask.png</code>, <code>diamond_mask.png</code></div>
+      </div>
+    </div>
+
+    <h3>Точечно по пчёлам</h3>
+    <div id="iconEditor" class="editor"></div>
+  </section>
+
+  <section class="card full">
+    <h2>5) Результаты</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="k">Пыльца/сек</div><div class="v" id="pollenPs">—</div></div>
+      <div class="kpi"><div class="k">Конверт/сек</div><div class="v" id="convertPs">—</div></div>
+      <div class="kpi"><div class="k">HPH (мёд/час)</div><div class="v" id="hph">—</div></div>
+    </div>
+    <div class="legend" id="bottleneck"></div>
+  </section>
+</main>
+
+<footer class="container">
+  <p>Фанатский инструмент. Если используешь чужие изображения, соблюдай их лицензию.</p>
+</footer>
+
+<script>
+// --- Данные ---
+const tplBees = [
+  { id:"basic",    name:"Basic Bee",    color:"white", pollen_ps:5.0,  convert_ps:2.0,  icon:null, aliases:["basic"] },
+  { id:"bomber",   name:"Bomber Bee",   color:"white", pollen_ps:10.0, convert_ps:4.0,  icon:null, aliases:["bomber"] },
+  { id:"carpenter",name:"Carpenter Bee",color:"white", pollen_ps:14.0, convert_ps:6.0,  icon:null, aliases:["carpenter"] },
+  { id:"fuzzy",    name:"Fuzzy Bee",    color:"white", pollen_ps:22.0, convert_ps:10.0, icon:null, aliases:["fuzzy"] },
+  { id:"diamond",  name:"Diamond Bee",  color:"blue",  pollen_ps:16.0, convert_ps:8.0,  icon:null, aliases:["diamond"] },
+  { id:"tadpole",  name:"Tadpole Bee",  color:"blue",  pollen_ps:18.0, convert_ps:8.0,  icon:null, aliases:["tadpole"] },
+  { id:"ninja",    name:"Ninja Bee",    color:"blue",  pollen_ps:20.0, convert_ps:9.0,  icon:null, aliases:["ninja"] },
+  { id:"spicy",    name:"Spicy Bee",    color:"red",   pollen_ps:24.0, convert_ps:9.0,  icon:null, aliases:["spicy"] },
+  { id:"precise",  name:"Precise Bee",  color:"red",   pollen_ps:21.0, convert_ps:9.0,  icon:null, aliases:["precise"] },
+  { id:"buoyant",  name:"Buoyant Bee",  color:"blue",  pollen_ps:12.0, convert_ps:12.0, icon:null, aliases:["buoyant","buoy"] }
+];
+
+const tplGear = {
+  masks: [
+    { id:"gummy_mask",   name:"Gummy Mask",   pollen_mult:1.50, convert_mult:1.10, white_mult:1.10, red_mult:1.00, blue_mult:1.00, capacity_mult:1.25, cost_honey:5000000000, cost_items:"Gumdrop:1000; Glue:250", icon:null, aliases:["gummy","gummy_mask"] },
+    { id:"demon_mask",   name:"Demon Mask",   pollen_mult:1.25, convert_mult:1.05, white_mult:1.00, red_mult:1.15, blue_mult:1.00, capacity_mult:1.15, cost_honey:3000000000, cost_items:"Oil:50; Enzymes:25", icon:null, aliases:["demon","demon_mask"] },
+    { id:"diamond_mask", name:"Diamond Mask", pollen_mult:1.25, convert_mult:1.10, white_mult:1.00, red_mult:1.00, blue_mult:1.15, capacity_mult:1.20, cost_honey:3000000000, cost_items:"Blue Extract:100; Enzymes:25", icon:null, aliases:["diamond_mask","diamondmask","diamondm"] }
+  ],
+  items: [
+    { id:"coconut_canister", name:"Coconut Canister", pollen_mult:1.20, convert_mult:1.20, white_mult:1.05, red_mult:1.05, blue_mult:1.05, capacity_mult:2.50, cost_honey:25000000000, cost_items:"Coconut:150; Oil:100; Enzymes:150; Rope:50" },
+    { id:"gummy_boots",      name:"Gummy Boots",      pollen_mult:1.20, convert_mult:1.15, white_mult:1.05, red_mult:1.05, blue_mult:1.05, capacity_mult:1.50, cost_honey:20000000000, cost_items:"Glitter:25; Glue:500" }
+  ]
+};
+
+const LS_BEES = "bss:icons:bees";
+const LS_MASKS = "bss:icons:masks";
+
+const el = (s)=>document.querySelector(s);
+const fmt = (n)=>{ if(n===0)return"0"; if(!isFinite(n))return"—"; const a=Math.abs(n); if(a>=1e12)return(n/1e12).toFixed(2)+"T"; if(a>=1e9)return(n/1e9).toFixed(2)+"B"; if(a>=1e6)return(n/1e6).toFixed(2)+"M"; if(a>=1e3)return(n/1e3).toFixed(2)+"K"; return n.toFixed(2); };
+
+const state = {
+  bees: JSON.parse(JSON.stringify(tplBees)),
+  gear: JSON.parse(JSON.stringify(tplGear)),
+  mask: "Gummy Mask",
+  items: new Set(["Coconut Canister","Gummy Boots"]),
+  hive: Array.from({length:50}, ()=>null),
+  field: { white:1.00, red:1.00, blue:1.25 },
+  globalMult: { pollen:1.00, convert:1.00 },
+};
+
+// загрузка сохранённых иконок
+(function(){
+  try{
+    const mb = JSON.parse(localStorage.getItem(LS_BEES)||"{}");
+    const mm = JSON.parse(localStorage.getItem(LS_MASKS)||"{}");
+    state.bees.forEach(b=>{ if(mb[b.id]) b.icon = mb[b.id]; });
+    state.gear.masks.forEach(m=>{ if(mm[m.id]) m.icon = mm[m.id]; });
+  }catch(e){}
+})();
+
+function mountEquip(){
+  const maskSel = el("#maskSelect"); maskSel.innerHTML = state.gear.masks.map(m=>`<option value="${m.name}">${m.name}</option>`).join("");
+  maskSel.value = state.mask; maskSel.addEventListener("change", ()=>{ state.mask = maskSel.value; renderResults(); });
+  const box = el("#itemsBox"); box.innerHTML = "";
+  state.gear.items.forEach(it=>{
+    const id = `item-${it.name.replace(/\s+/g,'-')}`;
+    const lab = document.createElement("label"); lab.style.marginRight="8px";
+    lab.innerHTML = `<input type="checkbox" id="${id}"> ${it.name}`;
+    const inp = lab.querySelector("input"); inp.checked = state.items.has(it.name);
+    inp.addEventListener("change", ()=>{ inp.checked? state.items.add(it.name): state.items.delete(it.name); renderResults(); });
+    box.appendChild(lab);
+  });
+}
+
+function mountHive(){
+  const hive = el("#hive"); hive.innerHTML = "";
+  for(let i=0;i<50;i++){
+    const slot=document.createElement("div"); slot.className="slot"; slot.dataset.idx=i;
+    slot.addEventListener("dragover", e=>e.preventDefault());
+    slot.addEventListener("drop", e=>{ e.preventDefault(); const id=e.dataTransfer.getData("text/bee"); if(!id) return; state.hive[i]=id; renderHive(); renderResults(); });
+    slot.addEventListener("touchstart", ()=>{ slot.dataset.t0 = Date.now(); });
+    slot.addEventListener("touchend", ()=>{ if(Date.now()-(+slot.dataset.t0||0) > 400) { state.hive[i]=null; renderHive(); renderResults(); } });
+    hive.appendChild(slot);
+  }
+  renderHive();
+}
+
+function renderHive(){
+  const hive = el("#hive");
+  for(let i=0;i<50;i++){
+    const slot=hive.children[i]; const id=state.hive[i];
+    slot.classList.remove("filled"); slot.innerHTML="";
+    if(id){
+      const b=state.bees.find(x=>x.id===id);
+      const img=document.createElement("img"); img.src=b?.icon || ""; slot.appendChild(img);
+      const x=document.createElement("div"); x.className="x"; x.textContent="×";
+      x.onclick=()=>{ state.hive[i]=null; renderHive(); renderResults(); };
+      slot.appendChild(x); slot.classList.add("filled");
+    }
+  }
+}
+
+function mountPalette(){
+  const pal = el("#beePalette"); pal.innerHTML = "";
+  state.bees.forEach(b=>{
+    const div=document.createElement("div"); div.className="bee"; div.draggable=true;
+    div.addEventListener("dragstart", e=>e.dataTransfer.setData("text/bee", b.id));
+    div.innerHTML=`<img src="${b.icon||''}" alt=""><div><div class="name">${b.name}</div><div class="meta">${b.color} • pollen/s ${b.pollen_ps} • convert/s ${b.convert_ps}</div></div>`;
+    pal.appendChild(div);
+  });
+}
+
+function aggregateGear(){
+  const mask = state.gear.masks.find(m=>m.name===state.mask);
+  const items = state.gear.items.filter(it=>state.items.has(it.name));
+  const m={pollen_mult:1,convert_mult:1,white_mult:1,red_mult:1,blue_mult:1,capacity_mult:1,cost_honey:0,cost_items:[]};
+  if(mask){["pollen_mult","convert_mult","white_mult","red_mult","blue_mult","capacity_mult"].forEach(k=>m[k]*=mask[k]); m.cost_honey+=mask.cost_honey||0; if(mask.cost_items)m.cost_items.push(mask.cost_items);}
+  items.forEach(it=>{["pollen_mult","convert_mult","white_mult","red_mult","blue_mult","capacity_mult"].forEach(k=>m[k]*=it[k]); m.cost_honey+=it.cost_honey||0; if(it.cost_items)m.cost_items.push(it.cost_items);});
+  m.cost_items = m.cost_items.join("; ");
+  return m;
+}
+
+function compute(){
+  const gear = aggregateGear();
+  const byId = Object.fromEntries(state.bees.map(b=>[b.id,b]));
+  let counts={}; state.hive.forEach(id=>{ if(id) counts[id]=(counts[id]||0)+1; });
+  let pol=0, conv=0;
+  for(const [id,c] of Object.entries(counts)){
+    const b=byId[id]; if(!b) continue;
+    const fm={white:state.field.white,red:state.field.red,blue:state.field.blue}[b.color]||1;
+    pol += b.pollen_ps*c*gear.pollen_mult*state.globalMult.pollen*fm;
+    conv += b.convert_ps*c*gear.convert_mult*state.globalMult.convert;
+  }
+  const meanColor=(gear.white_mult+gear.red_mult+gear.blue_mult)/3; pol*=meanColor;
+  const eff=Math.min(pol,conv); const hph=eff*3600;
+  return {gear,pol,conv,hph};
+}
+
+function renderResults(){
+  const r = compute();
+  el("#pollenPs").textContent = fmt(r.pol);
+  el("#convertPs").textContent = fmt(r.conv);
+  el("#hph").textContent = fmt(r.hph);
+  el("#bottleneck").innerHTML = r.pol < r.conv ? "Ограничение: <b>сбор пыльцы</b>" : (r.pol > r.conv ? "Ограничение: <b>конвертация</b>" : "Баланс");
+  el("#gearCosts").innerHTML = "Стоимость экипировки: <b>"+fmt(r.gear.cost_honey)+"</b> мёда • " + (r.gear.cost_items || "—");
+}
+
+// --- редактор иконок (точечно) ---
+function buildIconEditor(){
+  const wrap = el("#iconEditor"); wrap.innerHTML = "";
+  const savedBees = JSON.parse(localStorage.getItem(LS_BEES) || "{}");
+  state.bees.forEach(b=>{
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `
+      <div class="preview"><img id="prev-${b.id}" src="${b.icon||''}"><div><b>${b.name}</b><br><small>${b.color}</small></div></div>
+      <div style="flex:1">
+        <div class="row" style="gap:6px">
+          <input id="url-${b.id}" type="url" placeholder="https://... PNG/JPG/WebP/SVG" style="flex:1">
+          <button id="btn-${b.id}" class="primary">Применить URL</button>
+          <input id="file-${b.id}" type="file" accept="image/*">
+        </div>
+      </div>
+    `;
+    wrap.appendChild(row);
+    const urlInp = row.querySelector("#url-"+b.id);
+    const fileInp = row.querySelector("#file-"+b.id);
+    const btn = row.querySelector("#btn-"+b.id);
+
+    btn.onclick = ()=>{
+      const url = urlInp.value.trim(); if(!url) return;
+      savedBees[b.id] = url; localStorage.setItem(LS_BEES, JSON.stringify(savedBees));
+      b.icon = url; el("#prev-"+b.id).src = url; mountPalette(); renderHive();
+    };
+    fileInp.onchange = (e)=>{
+      const f = e.target.files[0]; if(!f) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        savedBees[b.id] = reader.result; localStorage.setItem(LS_BEES, JSON.stringify(savedBees));
+        b.icon = reader.result; el("#prev-"+b.id).src = reader.result; mountPalette(); renderHive();
+      };
+      reader.readAsDataURL(f);
+    };
+  });
+}
+
+// --- массовая загрузка ---
+function normalizeName(s){
+  return (s||"").toLowerCase().replace(/\.[a-z0-9]+$/,'').replace(/[^a-z0-9]+/g,'_');
+}
+
+function matchBeeIdByFilename(name){
+  const n = normalizeName(name);
+  for (const b of state.bees){
+    const keys = [b.id, ...(b.aliases||[]), normalizeName(b.name)];
+    if (keys.some(k=> n.includes(k))) return b.id;
+  }
+  return null;
+}
+
+function matchMaskIdByFilename(name){
+  const n = normalizeName(name);
+  for (const m of state.gear.masks){
+    const keys = [m.id, ...(m.aliases||[]), normalizeName(m.name)];
+    if (keys.some(k=> n.includes(k))) return m.id;
+  }
+  return null;
+}
+
+function setupBulkUpload(){
+  const beeInput = el("#bulkBeeFiles");
+  const maskInput = el("#bulkMaskFiles");
+
+  beeInput.addEventListener("change", (e)=>{
+    const files = Array.from(e.target.files||[]); if (!files.length) return;
+    const savedBees = JSON.parse(localStorage.getItem(LS_BEES) || "{}");
+    let ok=0, skip=0;
+    files.forEach(f=>{
+      const id = matchBeeIdByFilename(f.name);
+      if (!id) { skip++; return; }
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        savedBees[id] = reader.result;
+        localStorage.setItem(LS_BEES, JSON.stringify(savedBees));
+        const bee = state.bees.find(b=>b.id===id); if (bee){ bee.icon = reader.result; }
+        mountPalette(); renderHive();
+      };
+      reader.readAsDataURL(f); ok++;
+    });
+    setTimeout(()=> alert("Готово: загружено "+ok+" файлов, пропущено "+skip), 50);
+  });
+
+  maskInput.addEventListener("change", (e)=>{
+    const files = Array.from(e.target.files||[]); if (!files.length) return;
+    const savedMasks = JSON.parse(localStorage.getItem(LS_MASKS) || "{}");
+    let ok=0, skip=0;
+    files.forEach(f=>{
+      const id = matchMaskIdByFilename(f.name);
+      if (!id) { skip++; return; }
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        savedMasks[id] = reader.result;
+        localStorage.setItem(LS_MASKS, JSON.stringify(savedMasks));
+        const m = state.gear.masks.find(x=>x.id===id); if (m){ m.icon = reader.result; }
+      };
+      reader.readAsDataURL(f); ok++;
+    });
+    setTimeout(()=> alert("Готово: загружено "+ok+" файлов, пропущено "+skip), 50);
+  });
+}
+
+// --- экспорт/импорт ---
+function exportCfg(){
+  const cfg={
+    mask:state.mask, items:Array.from(state.items), hive:state.hive, field:state.field, globalMult:state.globalMult,
+    icons_bees: JSON.parse(localStorage.getItem(LS_BEES) || "{}"),
+    icons_masks: JSON.parse(localStorage.getItem(LS_MASKS) || "{}")
+  };
+  const blob=new Blob([JSON.stringify(cfg,null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="bss_hive_50_with_icons.json"; a.click(); URL.revokeObjectURL(url);
+}
+
+function importCfg(file){
+  const r=new FileReader(); r.onload=()=>{ try{const cfg=JSON.parse(r.result);
+    state.mask=cfg.mask??state.mask; state.items=new Set(cfg.items??Array.from(state.items));
+    if(Array.isArray(cfg.hive)&&cfg.hive.length===50) state.hive=cfg.hive;
+    state.field=cfg.field??state.field; state.globalMult=cfg.globalMult??state.globalMult;
+    if(cfg.icons_bees){ localStorage.setItem(LS_BEES, JSON.stringify(cfg.icons_bees)); state.bees.forEach(b=>{ if(cfg.icons_bees[b.id]) b.icon = cfg.icons_bees[b.id]; }); }
+    if(cfg.icons_masks){ localStorage.setItem(LS_MASKS, JSON.stringify(cfg.icons_masks)); state.gear.masks.forEach(m=>{ if(cfg.icons_masks[m.id]) m.icon = cfg.icons_masks[m.id]; }); }
+    mountEquip(); renderHive(); renderResults(); mountPalette(); buildIconEditor();
+  }catch(e){ alert("Ошибка импорта"); } }; r.readAsText(file);
+}
+
+function boot(){
+  mountEquip(); mountHive(); mountPalette(); buildIconEditor(); setupBulkUpload();
+  if (state.hive.every(x=>x===null)) {
+    const ids = ["fuzzy","diamond","tadpole","ninja","spicy","precise","carpenter","bomber","buoyant"];
+    const counts = [3,8,9,7,7,6,5,3,2]; let i=0;
+    ids.forEach((id,ix)=>{ for(let k=0;k<counts[ix];k++){ if(i<50) state.hive[i++]=id; } });
+    renderHive();
+  }
+  document.getElementById("clearHive").onclick=()=>{ state.hive=Array.from({length:50},()=>null); renderHive(); renderResults(); };
+  document.getElementById("exportHive").onclick=exportCfg;
+  document.getElementById("importHive").onclick=()=>document.getElementById("importFile").click();
+  document.getElementById("importFile").onchange=e=>{ const f=e.target.files[0]; if(f) importCfg(f); };
+  const w=el("#whiteMult"), r=el("#redMult"), b=el("#blueMult"), gp=el("#gp"), gc=el("#gc");
+  const upd=()=>{ state.field.white=parseFloat(w.value)||1; state.field.red=parseFloat(r.value)||1; state.field.blue=parseFloat(b.value)||1; state.globalMult.pollen=parseFloat(gp.value)||1; state.globalMult.convert=parseFloat(gc.value)||1; renderResults(); };
+  [w,r,b,gp,gc].forEach(i=>i.addEventListener("input",upd));
+  renderResults();
+}
+
+window.addEventListener("DOMContentLoaded", boot);
+</script>
+</body>
+</html>
