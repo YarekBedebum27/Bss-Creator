@@ -1,0 +1,26 @@
+[
+  {
+    "id": "coconut_canister",
+    "name": "Coconut Canister",
+    "pollen_mult": 1.2,
+    "convert_mult": 1.2,
+    "white_mult": 1.05,
+    "red_mult": 1.05,
+    "blue_mult": 1.05,
+    "capacity_mult": 2.5,
+    "cost_honey": 25000000000,
+    "cost_items": "Coconut:150; Oil:100; Enzymes:150; Rope:50"
+  },
+  {
+    "id": "gummy_boots",
+    "name": "Gummy Boots",
+    "pollen_mult": 1.2,
+    "convert_mult": 1.15,
+    "white_mult": 1.05,
+    "red_mult": 1.05,
+    "blue_mult": 1.05,
+    "capacity_mult": 1.5,
+    "cost_honey": 20000000000,
+    "cost_items": "Glitter:25; Glue:500"
+  }
+]

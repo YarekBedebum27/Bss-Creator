@@ -1,0 +1,62 @@
+[
+  {
+    "id": "honey_dipper",
+    "name": "Honey Dipper",
+    "pollen_mult": 1.1,
+    "convert_mult": 1.05,
+    "white_mult": 1.0,
+    "red_mult": 1.0,
+    "blue_mult": 1.0,
+    "capacity_mult": 1.0,
+    "cost_honey": 2000000,
+    "cost_items": ""
+  },
+  {
+    "id": "golden_rake",
+    "name": "Golden Rake",
+    "pollen_mult": 1.15,
+    "convert_mult": 1.05,
+    "white_mult": 1.0,
+    "red_mult": 1.05,
+    "blue_mult": 1.0,
+    "capacity_mult": 1.0,
+    "cost_honey": 15000000,
+    "cost_items": ""
+  },
+  {
+    "id": "scythe",
+    "name": "Scythe",
+    "pollen_mult": 1.2,
+    "convert_mult": 1.05,
+    "white_mult": 1.0,
+    "red_mult": 1.1,
+    "blue_mult": 1.0,
+    "capacity_mult": 1.0,
+    "cost_honey": 35000000,
+    "cost_items": ""
+  },
+  {
+    "id": "porcelain_dipper",
+    "name": "Porcelain Dipper",
+    "pollen_mult": 1.3,
+    "convert_mult": 1.1,
+    "white_mult": 1.05,
+    "red_mult": 1.05,
+    "blue_mult": 1.05,
+    "capacity_mult": 1.0,
+    "cost_honey": 150000000,
+    "cost_items": ""
+  },
+  {
+    "id": "petal_wand",
+    "name": "Petal Wand",
+    "pollen_mult": 1.4,
+    "convert_mult": 1.15,
+    "white_mult": 1.1,
+    "red_mult": 1.1,
+    "blue_mult": 1.1,
+    "capacity_mult": 1.0,
+    "cost_honey": 0,
+    "cost_items": ""
+  }
+]
